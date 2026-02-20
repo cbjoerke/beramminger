@@ -26,4 +26,5 @@ jobs:
       - name: Kjør beramminger scraper
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
         run: python scripts/beramminger.py

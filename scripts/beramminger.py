@@ -15,11 +15,6 @@ MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
 # Validate MongoDB URI
 if not MONGODB_URI:
     print("ERROR: MONGODB_URI environment variable is not set!")
-    print("\nFor local development:")
-    print("  Create a .env file with: MONGODB_URI=mongodb://localhost:27017/")
-    print("\nFor GitHub Actions:")
-    print("  Go to Settings → Secrets and variables → Actions")
-    print("  Add a secret named 'MONGODB_URI' with your MongoDB Atlas connection string")
     sys.exit(1)
 
 try:
@@ -29,7 +24,6 @@ try:
     print(f"Successfully connected to MongoDB!")
 except Exception as e:
     print(f"ERROR: Failed to connect to MongoDB: {e}")
-    print(f"URI (censored): {MONGODB_URI[:20]}...")
     sys.exit(1)
 
 db = client["beramminger"]
@@ -92,3 +86,19 @@ for beramming in beramminger['hits']:
 
 print("*" * 20)
 print(f"Lagret {inserted_count} nye beramminger.")
+
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "").strip()
+
+if WEBHOOK_URL:
+    try:
+        webhook_response = requests.post(
+            WEBHOOK_URL,
+            json={"text": str(inserted_count)},
+            timeout=10,
+        )
+        webhook_response.raise_for_status()
+        print("Slack webhook sent.")
+    except Exception as e:
+        print(f"WARNING: Failed to send Slack webhook: {e}")
+else:
+    print("WEBHOOK_URL is not set, skipping Slack webhook.")
