@@ -2,8 +2,16 @@ import pymongo
 import requests
 import datetime
 import time
+import os
+from dotenv import load_dotenv
 
-db = pymongo.MongoClient("mongodb://localhost:27017/")["beramminger"]
+# Load environment variables from .env file (for local development)
+load_dotenv()
+
+# Get MongoDB URI from environment variable
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+
+db = pymongo.MongoClient(MONGODB_URI)["beramminger"]
 collection = db["alle_beramminger"]
 
 headers = {

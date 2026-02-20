@@ -1,0 +1,29 @@
+name: Daily Beramminger Scrape
+
+on:
+  schedule:
+    # Kjører kl. 20:00 hver dag (UTC tid)
+    - cron: '0 20 * * *'
+  workflow_dispatch: # Lar deg starte skriptet manuelt for testing
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Sjekk ut kode
+        uses: actions/checkout@v3
+
+      - name: Sett opp Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.14'
+
+      - name: Installer avhengigheter
+        run: |
+          pip install pandas pymongo python-dotenv requests
+
+      - name: Kjør beramminger scraper
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: python scripts/beramminger.py
