@@ -4,7 +4,7 @@ import datetime
 import time
 
 db = pymongo.MongoClient("mongodb://localhost:27017/")["beramminger"]
-collection = db["u18_beramminger"]
+collection = db["alle_beramminger"]
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
