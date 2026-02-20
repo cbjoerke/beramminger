@@ -3,15 +3,36 @@ import requests
 import datetime
 import time
 import os
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file (for local development)
 load_dotenv()
 
 # Get MongoDB URI from environment variable
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
 
-db = pymongo.MongoClient(MONGODB_URI)["beramminger"]
+# Validate MongoDB URI
+if not MONGODB_URI:
+    print("ERROR: MONGODB_URI environment variable is not set!")
+    print("\nFor local development:")
+    print("  Create a .env file with: MONGODB_URI=mongodb://localhost:27017/")
+    print("\nFor GitHub Actions:")
+    print("  Go to Settings → Secrets and variables → Actions")
+    print("  Add a secret named 'MONGODB_URI' with your MongoDB Atlas connection string")
+    sys.exit(1)
+
+try:
+    client = pymongo.MongoClient(MONGODB_URI)
+    # Test the connection
+    client.admin.command('ping')
+    print(f"Successfully connected to MongoDB!")
+except Exception as e:
+    print(f"ERROR: Failed to connect to MongoDB: {e}")
+    print(f"URI (censored): {MONGODB_URI[:20]}...")
+    sys.exit(1)
+
+db = client["beramminger"]
 collection = db["alle_beramminger"]
 
 headers = {
