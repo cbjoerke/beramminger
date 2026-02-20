@@ -2,9 +2,9 @@ name: Daily Beramminger Scrape
 
 on:
   schedule:
-    # Kjører kl. 20:00 hver dag (UTC tid)
-    - cron: '0 20 * * *'
-  workflow_dispatch: # Lar deg starte skriptet manuelt for testing
+    # 17.00 UTC (18.00 CET) every day
+    - cron: '0 17 * * *'
+  workflow_dispatch: # Manual run
 
 jobs:
   scrape:
@@ -12,19 +12,22 @@ jobs:
 
     steps:
       - name: Sjekk ut kode
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Sett opp Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.14'
 
+      - name: Sett opp uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Installer avhengigheter
         run: |
-          pip install pandas pymongo python-dotenv requests
+          uv sync --frozen
 
       - name: Kjør beramminger scraper
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-        run: python scripts/beramminger.py
+        run: uv run python scripts/beramminger.py
