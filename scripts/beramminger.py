@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# CONNECT TO MONGODB
+# Secrets
 MONGODB_URI = os.getenv("MONGODB_URI", "").strip()
+WEBHOOK_DSBV =os.getenv("WEBHOOK_DSBV", "").strip()
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "").strip()
 
 try:
     client = pymongo.MongoClient(MONGODB_URI)
@@ -22,7 +24,6 @@ except Exception as e:
 db = client["beramminger"]
 collection = db["alle_beramminger"]
 
-# SCRIPT FOR SCRAPING BERAMMINGER FROM DOMSTOL.NO
 headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
 }
@@ -91,19 +92,16 @@ for offset in range(BACKFILL_DAYS):
 
         beramming_id = beramming['id']
 
-        # A case can appear on multiple days in the window; process each id only once per run.
         if beramming_id in processed_ids:
             continue
         processed_ids.add(beramming_id)
 
         print(f"Sjekker {beramming_id}...")
 
-        # Skip if already exists in the database
         if collection.find_one({'id': beramming_id}):
             print(f"- Skipping {beramming_id} (already exists).")
             continue
 
-        # Fetch extra data for the beramming
         sak_id = beramming["sakId"]
         sak_response = requests.get(
             'https://www.domstol.no/api/episerver/v3/beramming/{}'.format(sak_id),
@@ -113,16 +111,34 @@ for offset in range(BACKFILL_DAYS):
         sak_response.raise_for_status()
         sak_data = sak_response.json()
 
-        # Add extra data to the beramming
         beramming["sakstype"] = sak_data["sakstype"]
         beramming["saksinfo"] = sak_data
 
-        # Insert or update the beramming
         result = collection.update_one({'id': beramming_id}, {'$set': beramming}, upsert=True)
 
         if result.matched_count == 0:
             print(f"- Inserted new beramming with id {beramming_id}.")
             inserted_count += 1
+            
+            start_str = beramming.get("startdato")
+            slutt_str = beramming.get("sluttdato")
+            sakstype = beramming.get("sakstype", "")
+            
+            if start_str and slutt_str:
+                try:
+                    start_dt = datetime.datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+                    slutt_dt = datetime.datetime.fromisoformat(slutt_str.replace("Z", "+00:00"))
+                    
+                    if slutt_dt - start_dt == datetime.timedelta(hours=2) and sakstype == "Fengsling":
+                        slack_msg = {
+                            "text": f"⏱ *Ny 2-timers fengsling:* {beramming['saksnummer']}\n"
+                        }
+                        try:
+                            requests.post(WEBHOOK_DSBV, json=slack_msg, timeout=10)
+                        except Exception as e:
+                            print(f"WARNING: Klarte ikke å sende Slack-varsel: {e}")
+                except ValueError as e:
+                    print(f"WARNING: Kunne ikke parse datoene for beramming {beramming_id}: {e}")
 
         time.sleep(0.5)
 
@@ -131,19 +147,13 @@ print(f"Totalt hentet {total_hits_seen} treff i vinduet.")
 print(f"Unike beramminger sjekket: {len(processed_ids)}")
 print(f"Lagret {inserted_count} nye beramminger.")
 
-# SEND SLACK WEBHOOK WITH INSERTED COUNT
-WEBHOOK_URL = os.getenv("WEBHOOK_URL", "").strip()
-
-if WEBHOOK_URL:
-    try:
-        webhook_response = requests.post(
-            WEBHOOK_URL,
-            json={"text": str(inserted_count)},
-            timeout=10,
-        )
-        webhook_response.raise_for_status()
-        print("Slack webhook sent.")
-    except Exception as e:
-        print(f"WARNING: Failed to send Slack webhook: {e}")
-else:
-    print("WEBHOOK_URL is not set, skipping Slack webhook.")
+try:
+    webhook_response = requests.post(
+        WEBHOOK_URL,
+        json={"text": str(inserted_count)},
+        timeout=10,
+    )
+    webhook_response.raise_for_status()
+    print("Slack webhook sent.")
+except Exception as e:
+    print(f"WARNING: Failed to send Slack webhook: {e}")
