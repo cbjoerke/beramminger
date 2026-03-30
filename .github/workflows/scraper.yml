@@ -30,4 +30,5 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_DSBV: ${{ secrets.WEBHOOK_DSBV }}
         run: uv run python scripts/beramminger.py
