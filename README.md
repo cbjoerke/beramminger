@@ -1,3 +1,3 @@
 # beRamme Alvor
 
-🧑‍⚖️ Skraper domstol.no for nye beramminger.
+🧑‍⚖️ Skraper domstol.no for nye beramminger hver dag.
