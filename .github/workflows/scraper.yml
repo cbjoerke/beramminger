@@ -3,7 +3,7 @@ name: Daily Beramminger Scrape
 on:
   schedule:
     # 17.00 UTC (18.00 CET) every day
-    - cron: '0 17 * * *'
+    - cron: '0 18 * * *'
   workflow_dispatch: # Manual run
 
 jobs:
